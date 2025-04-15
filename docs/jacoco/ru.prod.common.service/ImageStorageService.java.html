@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ru"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ImageStorageService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">prod</a> &gt; <a href="index.source.html" class="el_package">ru.prod.common.service</a> &gt; <span class="el_source">ImageStorageService.java</span></div><h1>ImageStorageService.java</h1><pre class="source lang-java linenums">package ru.prod.common.service;
+
+import io.minio.GetObjectArgs;
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import ru.prod.common.exception.ImageStorageException;
+
+import java.io.InputStream;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class ImageStorageService {
+
+    private final MinioClient minioClient;
+
+    @Value(&quot;${minio.bucket}&quot;)
+    private String bucketName;
+
+<span class="fc" id="L27">    private static final List&lt;String&gt; ALLOWED_EXTENSIONS = List.of(&quot;jpg&quot;, &quot;png&quot;, &quot;jpeg&quot;);</span>
+
+    public String uploadFile(MultipartFile file) {
+        InputStream inputStream;
+        try {
+<span class="fc" id="L32">            inputStream = file.getInputStream();</span>
+<span class="fc" id="L33">            String filename = UUID.randomUUID() + &quot;.&quot; + getFileExtension(Objects.requireNonNull(file.getOriginalFilename()));</span>
+
+<span class="fc" id="L35">            minioClient.putObject(</span>
+<span class="fc" id="L36">                    PutObjectArgs.builder()</span>
+<span class="fc" id="L37">                            .bucket(bucketName)</span>
+<span class="fc" id="L38">                            .object(filename)</span>
+<span class="fc" id="L39">                            .stream(inputStream, inputStream.available(), -1)</span>
+<span class="fc" id="L40">                            .contentType(file.getContentType())</span>
+<span class="fc" id="L41">                            .build()</span>
+            );
+
+<span class="fc" id="L44">            return filename;</span>
+<span class="fc" id="L45">        } catch (ImageStorageException e) {</span>
+<span class="fc" id="L46">            throw e;</span>
+<span class="fc" id="L47">        } catch (Exception e) {</span>
+<span class="fc" id="L48">            throw new ImageStorageException(&quot;Error when uploading a file: &quot; + file.getOriginalFilename(), e);</span>
+        }
+    }
+
+    private String getFileExtension(String filename) {
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (!filename.contains(&quot;.&quot;)) {</span>
+<span class="fc" id="L54">            throw new ImageStorageException(&quot;File must have the extension jpg/png/jpeg&quot;);</span>
+        }
+
+<span class="fc" id="L57">        String extension = filename.substring(filename.lastIndexOf(&quot;.&quot;) + 1).toLowerCase();</span>
+
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        if (!ALLOWED_EXTENSIONS.contains(extension)) {</span>
+<span class="fc" id="L60">            throw new ImageStorageException(&quot;Invalid file format: &quot; + extension);</span>
+        }
+
+<span class="fc" id="L63">        return extension;</span>
+    }
+
+    public InputStreamResource downloadFile(String fileName) {
+        InputStream stream;
+        try {
+<span class="fc" id="L69">            stream = minioClient.getObject(</span>
+<span class="fc" id="L70">                    GetObjectArgs.builder()</span>
+<span class="fc" id="L71">                            .bucket(bucketName)</span>
+<span class="fc" id="L72">                            .object(fileName)</span>
+<span class="fc" id="L73">                            .build()</span>
+            );
+<span class="fc" id="L75">        } catch (Exception e) {</span>
+<span class="fc" id="L76">            throw new ImageStorageException(&quot;Error when downloading a file: &quot; + fileName, e);</span>
+<span class="fc" id="L77">        }</span>
+
+<span class="fc" id="L79">        return new InputStreamResource(stream);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

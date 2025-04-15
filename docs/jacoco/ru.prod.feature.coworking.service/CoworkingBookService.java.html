@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ru"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CoworkingBookService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">prod</a> &gt; <a href="index.source.html" class="el_package">ru.prod.feature.coworking.service</a> &gt; <span class="el_source">CoworkingBookService.java</span></div><h1>CoworkingBookService.java</h1><pre class="source lang-java linenums">package ru.prod.feature.coworking.service;
+
+import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import ru.prod.entity.*;
+import ru.prod.feature.account.service.AccountService;
+import ru.prod.feature.coworking.dto.*;
+import ru.prod.feature.coworking.exception.CoworkingNotFoundException;
+import ru.prod.feature.coworking.repository.CoworkingAccountRepository;
+import ru.prod.feature.coworking.repository.CoworkingBookRepository;
+import ru.prod.feature.coworking.repository.CoworkingPlaceBookRepository;
+import ru.prod.feature.coworking.repository.CoworkingRoomBookRepository;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.UUID;
+
+@SuppressWarnings(&quot;BooleanMethodIsAlwaysInverted&quot;)
+@Service
+@RequiredArgsConstructor
+public class CoworkingBookService {
+
+    private final CoworkingBookRepository coworkingBookRepository;
+
+    private final CoworkingRoomBookRepository coworkingRoomBookRepository;
+
+    private final CoworkingPlaceBookRepository coworkingPlaceBookRepository;
+
+    private final CoworkingAccountRepository coworkingAccountRepository;
+
+    private final AccountService accountService;
+
+    public CoworkingSpaceFloorRoomBook findRoomBookById(UUID roomBookId) {
+<span class="fc" id="L46">        return coworkingRoomBookRepository.findById(roomBookId)</span>
+<span class="fc" id="L47">                .orElseThrow(() -&gt; new CoworkingNotFoundException(&quot;Coworking room book with id &quot; + roomBookId + &quot; not found&quot;));</span>
+    }
+
+    public CoworkingSpaceFloorPlaceBook findPlaceBookById(UUID placeBookId) {
+<span class="fc" id="L51">        return coworkingPlaceBookRepository.findById(placeBookId)</span>
+<span class="fc" id="L52">                .orElseThrow(() -&gt; new CoworkingNotFoundException(&quot;Coworking place book with id &quot; + placeBookId + &quot; not found&quot;));</span>
+    }
+
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public CoworkingBookResponse bookPlace(UUID accountId,
+                                           UUID coworkingId,
+                                           UUID placeId,
+                                           LocalDateTime from,
+                                           LocalDateTime to) {
+<span class="fc" id="L61">        CoworkingSpaceFloorPlace place = coworkingBookRepository.findByCoworkingIdAndPlaceId(coworkingId, placeId)</span>
+<span class="fc" id="L62">                .orElseThrow(NoSuchElementException::new);</span>
+
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        if (!isAllowedPlaceToBook(placeId, from, to))</span>
+<span class="fc" id="L65">            throw new ResponseStatusException(HttpStatus.CONFLICT, &quot;Cannot be booked&quot;);</span>
+
+<span class="fc" id="L67">        CoworkingSpaceFloorPlaceBook book = new CoworkingSpaceFloorPlaceBook();</span>
+<span class="fc" id="L68">        book.setBookingAccount(coworkingAccountRepository.getByAccountId(accountId));</span>
+<span class="fc" id="L69">        book.setCoworkingSpaceFloorPlace(place);</span>
+<span class="fc" id="L70">        book.setStartTime(from);</span>
+<span class="fc" id="L71">        book.setEndTime(to);</span>
+<span class="fc" id="L72">        CoworkingSpaceFloorPlaceBook savedBook = coworkingBookRepository.save(book);</span>
+
+<span class="fc" id="L74">        return new CoworkingBookResponse(</span>
+<span class="fc" id="L75">            savedBook.getId(),</span>
+<span class="fc" id="L76">            savedBook.getValidation().toString()</span>
+        );
+    }
+
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public CoworkingBookResponse bookRoom(UUID accountId,
+                                           UUID coworkingId,
+                                           UUID roomId,
+                                           LocalDateTime from,
+                                           LocalDateTime to) {
+<span class="fc" id="L86">        CoworkingSpaceFloorRoom room = coworkingBookRepository.findByCoworkingIdAndRoomId(coworkingId, roomId)</span>
+<span class="fc" id="L87">                .orElseThrow(NoSuchElementException::new);</span>
+
+<span class="fc bfc" id="L89" title="All 2 branches covered.">        if (!isAllowedRoomToBook(roomId, from, to))</span>
+<span class="fc" id="L90">            throw new ResponseStatusException(HttpStatus.CONFLICT, &quot;Cannot be booked&quot;);</span>
+
+<span class="fc" id="L92">        CoworkingSpaceFloorRoomBook book = new CoworkingSpaceFloorRoomBook();</span>
+<span class="fc" id="L93">        book.setBookingAccount(coworkingAccountRepository.getByAccountId(accountId));</span>
+<span class="fc" id="L94">        book.setCoworkingSpaceFloorRoom(room);</span>
+<span class="fc" id="L95">        book.setStartTime(from);</span>
+<span class="fc" id="L96">        book.setEndTime(to);</span>
+<span class="fc" id="L97">        CoworkingSpaceFloorRoomBook savedBook = coworkingRoomBookRepository.save(book);</span>
+
+<span class="fc" id="L99">        return new CoworkingBookResponse(</span>
+<span class="fc" id="L100">            savedBook.getId(),</span>
+<span class="fc" id="L101">            savedBook.getValidation().toString()</span>
+        );
+    }
+
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public CoworkingBookResponse putBookPlace(UUID accountId,
+                                           UUID coworkingId,
+                                           UUID placeId,
+                                           LocalDateTime from,
+                                           LocalDateTime to) {
+<span class="fc" id="L111">        CoworkingSpaceFloorPlaceBook book = coworkingBookRepository</span>
+<span class="fc" id="L112">                .findBookByCoworkingIdAndRoomId(coworkingId, placeId)</span>
+<span class="fc" id="L113">                .orElseThrow(NoSuchElementException::new);</span>
+
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        if (!book.getBookingAccount().getId().equals(accountId))</span>
+<span class="fc" id="L116">            throw new ResponseStatusException(HttpStatus.FORBIDDEN);</span>
+
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">        if (!isAllowedPlaceToBook(placeId, from, to, book)) {</span>
+<span class="nc" id="L119">            throw new ResponseStatusException(HttpStatus.CONFLICT, &quot;Cannot be booked&quot;);</span>
+        }
+
+<span class="fc" id="L122">        book.setStartTime(from);</span>
+<span class="fc" id="L123">        book.setEndTime(to);</span>
+<span class="fc" id="L124">        CoworkingSpaceFloorPlaceBook savedBook = coworkingBookRepository.save(book);</span>
+
+<span class="fc" id="L126">        return new CoworkingBookResponse(</span>
+<span class="fc" id="L127">            savedBook.getId(),</span>
+<span class="fc" id="L128">            savedBook.getValidation().toString()</span>
+        );
+    }
+
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public CoworkingBookResponse putBookRoom(UUID accountId,
+                                           UUID coworkingId,
+                                           UUID roomId,
+                                           LocalDateTime from,
+                                           LocalDateTime to) {
+<span class="fc" id="L138">        CoworkingSpaceFloorRoomBook room = coworkingRoomBookRepository</span>
+<span class="fc" id="L139">                .findBookByAccountIdAndCoworkingIdAndRoomId(coworkingId, roomId)</span>
+<span class="fc" id="L140">                .orElseThrow(NoSuchElementException::new);</span>
+
+<span class="fc bfc" id="L142" title="All 2 branches covered.">        if (!room.getBookingAccount().getId().equals(accountId))</span>
+<span class="fc" id="L143">            throw new ResponseStatusException(HttpStatus.FORBIDDEN);</span>
+
+<span class="fc bfc" id="L145" title="All 2 branches covered.">        if (!isAllowedRoomToBook(roomId, from, to, room))</span>
+<span class="fc" id="L146">            throw new ResponseStatusException(HttpStatus.CONFLICT, &quot;Cannot be booked&quot;);</span>
+
+<span class="fc" id="L148">        room.setStartTime(from);</span>
+<span class="fc" id="L149">        room.setEndTime(to);</span>
+<span class="fc" id="L150">        CoworkingSpaceFloorRoomBook savedBook = coworkingRoomBookRepository.save(room);</span>
+
+<span class="fc" id="L152">        return new CoworkingBookResponse(</span>
+<span class="fc" id="L153">            savedBook.getId(),</span>
+<span class="fc" id="L154">            savedBook.getValidation().toString()</span>
+        );
+    }
+
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public void deleteBookPlace(UUID accountId, UUID bookId) {
+<span class="fc" id="L160">        CoworkingSpaceFloorPlaceBook book = coworkingBookRepository</span>
+<span class="fc" id="L161">                .findBookByBookId(bookId)</span>
+<span class="fc" id="L162">                .orElseThrow(NoSuchElementException::new);</span>
+<span class="fc" id="L163">        Account account = accountService.findById(accountId);</span>
+
+<span class="pc bpc" id="L165" title="1 of 4 branches missed.">        if (!book.getBookingAccount().getId().equals(accountId) &amp;&amp; !account.getIsAdmin())</span>
+<span class="fc" id="L166">            throw new ResponseStatusException(HttpStatus.FORBIDDEN);</span>
+
+<span class="fc" id="L168">        coworkingBookRepository.delete(book);</span>
+<span class="fc" id="L169">    }</span>
+
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public void deleteBookRoom(UUID accountId, UUID bookId) {
+<span class="nc" id="L173">        CoworkingSpaceFloorRoomBook room = coworkingRoomBookRepository</span>
+<span class="nc" id="L174">                .findBookByBookId(bookId)</span>
+<span class="nc" id="L175">                .orElseThrow(NoSuchElementException::new);</span>
+
+<span class="nc bnc" id="L177" title="All 2 branches missed.">        if (!room.getBookingAccount().getId().equals(accountId))</span>
+<span class="nc" id="L178">            throw new ResponseStatusException(HttpStatus.FORBIDDEN);</span>
+
+<span class="nc" id="L180">        coworkingRoomBookRepository.delete(room);</span>
+<span class="nc" id="L181">    }</span>
+
+    @Transactional(isolation = Isolation.SERIALIZABLE, readOnly = true)
+    protected boolean isAllowedPlaceToBook(UUID placeId,
+                                           LocalDateTime from,
+                                           LocalDateTime to,
+                                           CoworkingSpaceFloorPlaceBook... ignore) {
+<span class="fc" id="L188">        List&lt;CoworkingSpaceFloorPlaceBook&gt; books = coworkingBookRepository.findBookByCoworkingIdAndPlaceId(</span>
+                placeId,
+                from,
+                to
+        );
+
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        for (CoworkingSpaceFloorPlaceBook book : ignore)</span>
+<span class="fc" id="L195">            books.remove(book);</span>
+
+<span class="fc" id="L197">        return books.isEmpty();</span>
+    }
+
+    @Transactional(isolation = Isolation.SERIALIZABLE, readOnly = true)
+    protected boolean isAllowedRoomToBook(UUID roomId,
+                                          LocalDateTime from,
+                                          LocalDateTime to,
+                                          CoworkingSpaceFloorRoomBook... ignore) {
+<span class="fc" id="L205">        List&lt;CoworkingSpaceFloorPlaceBook&gt; places = coworkingRoomBookRepository.findBooksByCoworkingIdAndRoomId(</span>
+                roomId,
+                from,
+                to
+        );
+
+<span class="fc" id="L211">        List&lt;CoworkingSpaceFloorRoomBook&gt; rooms = coworkingRoomBookRepository.findRoomBooksByCoworkingIdAndRoomId(</span>
+                roomId,
+                from,
+                to
+        );
+
+<span class="fc bfc" id="L217" title="All 2 branches covered.">        for (CoworkingSpaceFloorRoomBook book : ignore)</span>
+<span class="fc" id="L218">            rooms.remove(book);</span>
+
+<span class="pc bpc" id="L220" title="1 of 4 branches missed.">        return rooms.isEmpty() &amp;&amp; places.isEmpty();</span>
+    }
+
+    public CoworkingFloorPlaceResponse verifyPlaceBook(UUID accountId, UUID placeBookId) {
+<span class="fc" id="L224">        isAdmin(accountId);</span>
+
+<span class="fc" id="L226">        CoworkingSpaceFloorPlaceBook placeBook = findPlaceBookById(placeBookId);</span>
+
+<span class="fc" id="L228">        return new CoworkingFloorPlaceResponse(</span>
+<span class="fc" id="L229">                placeBook.getCoworkingSpaceFloorPlace().getId(),</span>
+<span class="fc" id="L230">                placeBook.getCoworkingSpaceFloorPlace().getLatitude(),</span>
+<span class="fc" id="L231">                placeBook.getCoworkingSpaceFloorPlace().getLongitude(),</span>
+<span class="fc" id="L232">                placeBook.getCoworkingSpaceFloorPlace().getPrice(),</span>
+<span class="fc" id="L233">                List.of(</span>
+                        new CoworkingAccountBookingResponse(
+<span class="fc" id="L235">                                placeBook.getBookingAccount().getLogin(),</span>
+<span class="fc" id="L236">                                placeBook.getStartTime(),</span>
+<span class="fc" id="L237">                                placeBook.getEndTime()</span>
+                        )
+                )
+        );
+    }
+
+    private void isAdmin(UUID accountId) {
+<span class="fc" id="L244">        Account account = accountService.findById(accountId);</span>
+
+<span class="fc bfc" id="L246" title="All 2 branches covered.">        if (!account.getIsAdmin()) {</span>
+<span class="fc" id="L247">            throw new AccessDeniedException(&quot;You don't have permission to get accounts&quot;);</span>
+        }
+<span class="fc" id="L249">    }</span>
+
+    public CoworkingFloorRoomResponse verifyRoomBook(UUID accountId, UUID roomBookId) {
+<span class="nc" id="L252">        isAdmin(accountId);</span>
+
+<span class="nc" id="L254">        CoworkingSpaceFloorRoomBook roomBook = findRoomBookById(roomBookId);</span>
+
+<span class="nc" id="L256">        return new CoworkingFloorRoomResponse(</span>
+                roomBookId,
+<span class="nc" id="L258">                roomBook.getCoworkingSpaceFloorRoom().getLatitude(),</span>
+<span class="nc" id="L259">                roomBook.getCoworkingSpaceFloorRoom().getLongitude(),</span>
+<span class="nc" id="L260">                roomBook.getCoworkingSpaceFloorRoom().getPrice(),</span>
+<span class="nc" id="L261">                List.of(</span>
+                        new CoworkingAccountBookingResponse(
+<span class="nc" id="L263">                                roomBook.getBookingAccount().getLogin(),</span>
+<span class="nc" id="L264">                                roomBook.getStartTime(),</span>
+<span class="nc" id="L265">                                roomBook.getEndTime()</span>
+                        )
+                )
+        );
+    }
+
+    public List&lt;CoworkingAccountBookResponse&gt; getActiveAccountBookings(UUID accountId, int page, int size) {
+<span class="nc" id="L272">        Account account = accountService.findById(accountId);</span>
+
+<span class="nc" id="L274">        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, &quot;startTime&quot;));</span>
+
+<span class="nc" id="L276">        Page&lt;CoworkingAccountBookResponse&gt; placeBookings = coworkingBookRepository.findActivePlaceBookingsByAccount(account.getId(), pageable);</span>
+<span class="nc" id="L277">        Page&lt;CoworkingAccountBookResponse&gt; roomBookings = coworkingBookRepository.findActiveRoomBookingsByAccount(account.getId(), pageable);</span>
+
+<span class="nc" id="L279">        return getBookingsResponse(pageable, placeBookings, roomBookings);</span>
+    }
+
+    public List&lt;CoworkingAccountBookResponse&gt; getAccountsBookings(UUID accountId, int size, int page) {
+<span class="nc" id="L283">        isAdmin(accountId);</span>
+
+<span class="nc" id="L285">        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, &quot;startTime&quot;));</span>
+
+<span class="nc" id="L287">        Page&lt;CoworkingAccountBookResponse&gt; placeBookings = coworkingBookRepository.findAllPlaceBookings(pageable);</span>
+<span class="nc" id="L288">        Page&lt;CoworkingAccountBookResponse&gt; roomBookings = coworkingBookRepository.findAllRoomBookings(pageable);</span>
+
+<span class="nc" id="L290">        return getBookingsResponse(pageable, placeBookings, roomBookings);</span>
+    }
+
+    @NotNull
+    private List&lt;CoworkingAccountBookResponse&gt; getBookingsResponse(PageRequest pageable, Page&lt;CoworkingAccountBookResponse&gt; placeBookings, Page&lt;CoworkingAccountBookResponse&gt; roomBookings) {
+<span class="nc" id="L295">        List&lt;CoworkingAccountBookResponse&gt; allBookings = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L296">        allBookings.addAll(placeBookings.getContent());</span>
+<span class="nc" id="L297">        allBookings.addAll(roomBookings.getContent());</span>
+
+<span class="nc" id="L299">        int total = (int) (placeBookings.getTotalElements() + roomBookings.getTotalElements());</span>
+<span class="nc" id="L300">        return new PageImpl&lt;&gt;(allBookings, pageable, total).toList();</span>
+    }
+
+    public List&lt;CoworkingAccountBookResponse&gt; getAccountHistoryBookings(UUID accountId, int size, int page) {
+<span class="nc" id="L304">        PageRequest pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, &quot;createdAt&quot;));</span>
+
+<span class="nc" id="L306">        Page&lt;CoworkingAccountBookResponse&gt; placeBookings = coworkingBookRepository.findAccountPlaceBookings(accountId, pageable);</span>
+<span class="nc" id="L307">        Page&lt;CoworkingAccountBookResponse&gt; roomBookings = coworkingBookRepository.findAccountRoomBookings(accountId, pageable);</span>
+
+<span class="nc" id="L309">        return getBookingsResponse(pageable, placeBookings, roomBookings);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ru"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CoworkingAnnouncementService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">prod</a> &gt; <a href="index.source.html" class="el_package">ru.prod.feature.coworking.service</a> &gt; <span class="el_source">CoworkingAnnouncementService.java</span></div><h1>CoworkingAnnouncementService.java</h1><pre class="source lang-java linenums">package ru.prod.feature.coworking.service;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import ru.prod.entity.Account;
+import ru.prod.entity.CoworkingAnnouncement;
+import ru.prod.entity.CoworkingSpaceFloorRoomBook;
+import ru.prod.feature.account.service.AccountService;
+import ru.prod.feature.coworking.dto.CoworkingAnnouncementRequest;
+import ru.prod.feature.coworking.dto.CoworkingAnnouncementResponse;
+import ru.prod.feature.coworking.mapper.CoworkingAnnouncementMapper;
+import ru.prod.feature.coworking.repository.CoworkingAnnouncementRepository;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class CoworkingAnnouncementService {
+    private final CoworkingAnnouncementRepository coworkingAnnouncementRepository;
+    private final CoworkingBookService coworkingBookService;
+    private final AccountService accountService;
+    private final CoworkingAnnouncementMapper coworkingAnnouncementMapper;
+
+    public CoworkingAnnouncementResponse create(UUID accountId, CoworkingAnnouncementRequest request) {
+<span class="nc" id="L29">        Account account = accountService.findById(accountId);</span>
+<span class="nc" id="L30">        CoworkingSpaceFloorRoomBook roomBook = coworkingBookService.findRoomBookById(request.getRoomBookId());</span>
+
+<span class="nc bnc" id="L32" title="All 2 branches missed.">        if (!roomBook.getBookingAccount().getId().equals(account.getId())) {</span>
+<span class="nc" id="L33">            throw new AccessDeniedException(&quot;You do not have permission to book this room&quot;);</span>
+        }
+
+<span class="nc" id="L36">        var announcement = CoworkingAnnouncement.builder()</span>
+<span class="nc" id="L37">                .title(request.getTitle())</span>
+<span class="nc" id="L38">                .content(request.getContent())</span>
+<span class="nc" id="L39">                .startTime(roomBook.getStartTime())</span>
+<span class="nc" id="L40">                .endTime(roomBook.getEndTime())</span>
+<span class="nc" id="L41">                .account(account)</span>
+<span class="nc" id="L42">                .roomBook(roomBook)</span>
+<span class="nc" id="L43">                .build();</span>
+
+<span class="nc" id="L45">        announcement = coworkingAnnouncementRepository.save(announcement);</span>
+<span class="nc" id="L46">        return coworkingAnnouncementMapper.toResponse(announcement);</span>
+    }
+
+    public List&lt;CoworkingAnnouncementResponse&gt; getAnnouncements(int page, int size) {
+<span class="nc" id="L50">        return coworkingAnnouncementRepository.findAll(PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, &quot;startTime&quot;)))</span>
+<span class="nc" id="L51">                .stream()</span>
+<span class="nc" id="L52">                .map(coworkingAnnouncementMapper::toResponse)</span>
+<span class="nc" id="L53">                .toList();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

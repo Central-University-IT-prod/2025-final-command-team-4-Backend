@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ru"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CoworkingSpaceController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">prod</a> &gt; <a href="index.source.html" class="el_package">ru.prod.feature.coworking.controller</a> &gt; <span class="el_source">CoworkingSpaceController.java</span></div><h1>CoworkingSpaceController.java</h1><pre class="source lang-java linenums">package ru.prod.feature.coworking.controller;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import ru.prod.feature.account.help.ImageData;
+import ru.prod.feature.coworking.api.CoworkingSpaceApi;
+import ru.prod.feature.coworking.dto.CoworkingElementResponse;
+import ru.prod.feature.coworking.dto.CoworkingResponse;
+import ru.prod.feature.coworking.service.CoworkingSpaceService;
+
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.UUID;
+
+@RestController
+@RequiredArgsConstructor
+public class CoworkingSpaceController implements CoworkingSpaceApi {
+
+    private final CoworkingSpaceService coworkingSpaceService;
+
+    @Override
+    public List&lt;CoworkingElementResponse&gt; findAll() {
+<span class="nc" id="L30">        return coworkingSpaceService.findAll(</span>
+<span class="nc" id="L31">                LocalDateTime.now(),</span>
+<span class="nc" id="L32">                LocalDateTime.now()</span>
+        );
+    }
+
+    @Override
+    public CoworkingResponse findCoworkingSpace(UUID coworkingId, ZonedDateTime startAt, ZonedDateTime endAt) {
+<span class="nc" id="L38">        return coworkingSpaceService.findById(coworkingId, startAt.toLocalDateTime(), endAt.toLocalDateTime())</span>
+<span class="nc" id="L39">                .orElseThrow(NoSuchElementException::new);</span>
+    }
+
+    @Override
+    public void uploadFloorImage(UUID accountId, MultipartFile file, UUID floorId) {
+<span class="nc" id="L44">        coworkingSpaceService.uploadFloorImage(accountId, floorId, file);</span>
+<span class="nc" id="L45">    }</span>
+
+    @Override
+    public ResponseEntity&lt;InputStreamResource&gt; downloadFloorImage(UUID floorId) {
+<span class="nc" id="L49">        ImageData imageData = coworkingSpaceService.downloadFloorImage(floorId);</span>
+
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        if (imageData == null) {</span>
+<span class="nc" id="L52">            return ResponseEntity.noContent().build();</span>
+        }
+
+<span class="nc" id="L55">        HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L56">        headers.add(HttpHeaders.CONTENT_DISPOSITION, &quot;attachment; filename=&quot; + imageData.filename());</span>
+
+<span class="nc" id="L58">        return ResponseEntity.ok()</span>
+<span class="nc" id="L59">                .contentType(MediaType.APPLICATION_OCTET_STREAM)</span>
+<span class="nc" id="L60">                .headers(headers)</span>
+<span class="nc" id="L61">                .body(imageData.resource());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ru"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CoworkingSpaceService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">prod</a> &gt; <a href="index.source.html" class="el_package">ru.prod.feature.coworking.service</a> &gt; <span class="el_source">CoworkingSpaceService.java</span></div><h1>CoworkingSpaceService.java</h1><pre class="source lang-java linenums">package ru.prod.feature.coworking.service;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import ru.prod.common.service.ImageStorageService;
+import ru.prod.entity.Account;
+import ru.prod.entity.CoworkingSpace;
+import ru.prod.entity.CoworkingSpaceFloor;
+import ru.prod.feature.account.help.ImageData;
+import ru.prod.feature.account.service.AccountService;
+import ru.prod.feature.coworking.dto.*;
+import ru.prod.feature.coworking.exception.CoworkingNotFoundException;
+import ru.prod.feature.coworking.repository.CoworkingFloorRepository;
+import ru.prod.feature.coworking.repository.CoworkingRepository;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+<span class="fc" id="L26">@Slf4j</span>
+@Service
+@RequiredArgsConstructor
+public class CoworkingSpaceService {
+
+    private final CoworkingRepository coworkingRepository;
+    private final CoworkingFloorRepository coworkingFloorRepository;
+    private final ImageStorageService imageStorageService;
+    private final AccountService accountService;
+
+    public List&lt;CoworkingElementResponse&gt; findAll(LocalDateTime from, LocalDateTime to) {
+<span class="fc" id="L37">        return coworkingRepository.findAllElements(from, to).stream().peek(coworkingElementResponse -&gt;</span>
+<span class="fc" id="L38">                coworkingElementResponse.setImageUrls(coworkingRepository.findAllImagesElements(coworkingElementResponse.getCoworkingId()))).toList();</span>
+    }
+
+    public Optional&lt;CoworkingResponse&gt; findById(UUID coworkingId, LocalDateTime from, LocalDateTime to) {
+<span class="fc" id="L42">        Optional&lt;CoworkingResponse&gt; optionalCoworkingResponse = coworkingRepository.findResponseById(coworkingId, from, to);</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        if (optionalCoworkingResponse.isEmpty())</span>
+<span class="fc" id="L44">            return Optional.empty();</span>
+
+<span class="fc" id="L46">        CoworkingResponse coworkingResponse = optionalCoworkingResponse.get();</span>
+<span class="fc" id="L47">        coworkingResponse.setImageUrls(coworkingRepository.findResponseImagesById(coworkingId));</span>
+
+<span class="fc" id="L49">        List&lt;CoworkingFloorResponse&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L50" title="All 2 branches covered.">        for (CoworkingFloorResponse coworkingFloorResponse : coworkingRepository.findFloorResponses(coworkingId, from, to)) {</span>
+
+<span class="fc" id="L52">            coworkingFloorResponse.setPlaces(new ArrayList&lt;&gt;());</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">            for (CoworkingFloorPlaceResponse response: coworkingRepository.findFloorPlaceResponses(coworkingFloorResponse.getFloorId())) {</span>
+<span class="fc" id="L54">                response.setBookings(coworkingRepository.findAccountsFloorPlaceResponses(response.getPlaceId(), from, to));</span>
+<span class="fc" id="L55">                coworkingFloorResponse.getPlaces().add(response);</span>
+<span class="fc" id="L56">            }</span>
+
+<span class="fc" id="L58">            coworkingFloorResponse.setRooms(new ArrayList&lt;&gt;());</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">            for (CoworkingFloorRoomResponse response: coworkingRepository.findFloorRoomResponses(coworkingFloorResponse.getFloorId())) {</span>
+<span class="fc" id="L60">                response.setBookings(coworkingRepository.findAccountsFloorRoomResponses(response.getRoomId(), from, to));</span>
+<span class="fc" id="L61">                response.getBookings().addAll(coworkingRepository.findAccountsFloorPlaceResponsesByRoomId(response.getRoomId(), from, to));</span>
+<span class="fc" id="L62">                coworkingFloorResponse.getRooms().add(response);</span>
+<span class="fc" id="L63">            }</span>
+
+<span class="fc" id="L65">            list.add(coworkingFloorResponse);</span>
+<span class="fc" id="L66">        }</span>
+<span class="fc" id="L67">        coworkingResponse.setFloors(list);</span>
+
+<span class="fc" id="L69">        return Optional.of(coworkingResponse);</span>
+    }
+
+    public void uploadFloorImage(UUID accountId, UUID floorId, MultipartFile file) {
+<span class="nc" id="L73">        isAdmin(accountId);</span>
+
+<span class="nc" id="L75">        CoworkingSpaceFloor floor = findFloorById(floorId);</span>
+
+<span class="nc" id="L77">        String imageName = imageStorageService.uploadFile(file);</span>
+<span class="nc" id="L78">        floor.setObject(imageName);</span>
+<span class="nc" id="L79">        coworkingFloorRepository.save(floor);</span>
+<span class="nc" id="L80">    }</span>
+
+    private void isAdmin(UUID accountId) {
+<span class="nc" id="L83">        Account account = accountService.findById(accountId);</span>
+
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        if (!account.getIsAdmin()) {</span>
+<span class="nc" id="L86">            throw new AccessDeniedException(&quot;You don't have permission to get accounts&quot;);</span>
+        }
+<span class="nc" id="L88">    }</span>
+
+    private CoworkingSpaceFloor findFloorById(UUID floorId) {
+<span class="nc" id="L91">        return coworkingFloorRepository.findById(floorId)</span>
+<span class="nc" id="L92">                .orElseThrow(() -&gt; new CoworkingNotFoundException(&quot;Coworking floor with id &quot; + floorId + &quot; not found&quot;));</span>
+    }
+
+    public ImageData downloadFloorImage(UUID floorId) {
+<span class="nc" id="L96">        CoworkingSpaceFloor floor = findFloorById(floorId);</span>
+
+<span class="nc bnc" id="L98" title="All 2 branches missed.">        if (floor.getObject() == null) {</span>
+<span class="nc" id="L99">            return null;</span>
+        }
+
+<span class="nc" id="L102">        InputStreamResource resource = imageStorageService.downloadFile(floor.getObject());</span>
+
+<span class="nc" id="L104">        return new ImageData(resource, floor.getObject());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

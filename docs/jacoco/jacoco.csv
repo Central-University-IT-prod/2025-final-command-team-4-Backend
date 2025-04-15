@@ -1,0 +1,7 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+prod,ru.prod.feature.account.service,AccountAuthService,0,105,0,4,0,17,0,4,0,2
+prod,ru.prod.feature.account.service,AccountService,0,196,1,9,0,41,1,18,0,14
+prod,ru.prod.common.service,ImageStorageService,0,114,0,4,0,30,0,6,0,4
+prod,ru.prod.feature.coworking.service,CoworkingBookService,190,414,5,23,37,87,10,23,6,13
+prod,ru.prod.feature.coworking.service,CoworkingAnnouncementService,77,0,2,0,18,0,3,0,2,0
+prod,ru.prod.feature.coworking.service,CoworkingSpaceService,74,154,4,8,17,25,7,8,5,4

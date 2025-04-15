@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="ru"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CoworkingBookController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">prod</a> &gt; <a href="index.source.html" class="el_package">ru.prod.feature.coworking.controller</a> &gt; <span class="el_source">CoworkingBookController.java</span></div><h1>CoworkingBookController.java</h1><pre class="source lang-java linenums">package ru.prod.feature.coworking.controller;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+import ru.prod.feature.coworking.api.CoworkingBookApi;
+import ru.prod.feature.coworking.dto.CoworkingAccountBookResponse;
+import ru.prod.feature.coworking.dto.CoworkingBookResponse;
+import ru.prod.feature.coworking.dto.CoworkingFloorPlaceResponse;
+import ru.prod.feature.coworking.dto.CoworkingFloorRoomResponse;
+import ru.prod.feature.coworking.service.CoworkingBookService;
+
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.UUID;
+
+@RestController
+@RequiredArgsConstructor
+public class CoworkingBookController implements CoworkingBookApi {
+
+    private final CoworkingBookService coworkingBookService;
+
+    @Override
+    public List&lt;CoworkingAccountBookResponse&gt; getActiveAccountBookings(UUID accountId, Integer page, Integer limit) {
+<span class="nc" id="L27">        return coworkingBookService.getActiveAccountBookings(accountId, page, limit);</span>
+    }
+
+    @Override
+    public CoworkingBookResponse createBookPlace(UUID accountId, UUID coworkingId, UUID placeId, ZonedDateTime startAt, ZonedDateTime endAt) {
+<span class="nc bnc" id="L32" title="All 4 branches missed.">        if (startAt.isAfter(endAt) || startAt.isEqual(endAt))</span>
+<span class="nc" id="L33">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);</span>
+
+<span class="nc" id="L35">        return coworkingBookService.bookPlace(accountId, coworkingId, placeId, startAt.toLocalDateTime(), endAt.toLocalDateTime());</span>
+    }
+
+    @Override
+    public CoworkingBookResponse createBookRoom(UUID accountId, UUID coworkingId, UUID roomId, ZonedDateTime startAt, ZonedDateTime endAt) {
+<span class="nc bnc" id="L40" title="All 4 branches missed.">        if (startAt.isAfter(endAt) || startAt.isEqual(endAt))</span>
+<span class="nc" id="L41">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);</span>
+
+<span class="nc" id="L43">        return coworkingBookService.bookRoom(accountId, coworkingId, roomId, startAt.toLocalDateTime(), endAt.toLocalDateTime());</span>
+    }
+
+    @Override
+    public CoworkingBookResponse putBookRoom(UUID accountId, UUID coworkingId, UUID bookId, ZonedDateTime startAt, ZonedDateTime endAt) {
+<span class="nc bnc" id="L48" title="All 4 branches missed.">        if (startAt.isAfter(endAt) || startAt.isEqual(endAt))</span>
+<span class="nc" id="L49">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);</span>
+
+<span class="nc" id="L51">        return coworkingBookService.putBookRoom(accountId, coworkingId, bookId, startAt.toLocalDateTime(), endAt.toLocalDateTime());</span>
+    }
+
+    @Override
+    public CoworkingBookResponse putBookPlace(UUID accountId, UUID coworkingId, UUID bookId, ZonedDateTime startAt, ZonedDateTime endAt) {
+<span class="nc bnc" id="L56" title="All 4 branches missed.">        if (startAt.isAfter(endAt) || startAt.isEqual(endAt))</span>
+<span class="nc" id="L57">            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);</span>
+
+<span class="nc" id="L59">        return coworkingBookService.putBookPlace(accountId, coworkingId, bookId, startAt.toLocalDateTime(), endAt.toLocalDateTime());</span>
+    }
+
+    @Override
+    public void deleteBookRoom(UUID accountId, UUID bookId) {
+<span class="nc" id="L64">        coworkingBookService.deleteBookRoom(accountId, bookId);</span>
+<span class="nc" id="L65">    }</span>
+
+    @Override
+    public void deleteBookPlace(UUID accountId, UUID bookId) {
+<span class="nc" id="L69">        coworkingBookService.deleteBookPlace(accountId, bookId);</span>
+<span class="nc" id="L70">    }</span>
+
+    @Override
+    public CoworkingFloorPlaceResponse verifyPlaceBook(UUID accountId, UUID placeBookId) {
+<span class="nc" id="L74">        return coworkingBookService.verifyPlaceBook(accountId, placeBookId);</span>
+    }
+
+    @Override
+    public CoworkingFloorRoomResponse verifyRoomBook(UUID accountId, UUID roomBookId) {
+<span class="nc" id="L79">        return coworkingBookService.verifyRoomBook(accountId, roomBookId);</span>
+    }
+
+    @Override
+    public List&lt;CoworkingAccountBookResponse&gt; getAllBookings(UUID accountId, Integer page, Integer size) {
+<span class="nc" id="L84">        return coworkingBookService.getAccountsBookings(accountId, size, page);</span>
+    }
+
+    @Override
+    public List&lt;CoworkingAccountBookResponse&gt; getAccountHistory(UUID accountId, Integer page, Integer size) {
+<span class="nc" id="L89">        return coworkingBookService.getAccountHistoryBookings(accountId, size, page);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
